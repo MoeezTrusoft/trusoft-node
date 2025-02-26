@@ -181,6 +181,9 @@ app.post("/resume", uploadMulterFiles, async (req, res) => {
     return res.status(500).json({ error: "Upload failed: " + error.message });
   }
 });
+
+app.get("/", (req, res) => res.send("Career API Is working on PORT: " + PORT));
+
 app.listen(PORT, () => {
   console.log("Server is running on " + PORT);
 });
