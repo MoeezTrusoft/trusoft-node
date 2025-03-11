@@ -259,6 +259,9 @@ app.post("/formsubmission", async (req, res) => {
   }
 });
 
+
+app.get("/", (req, res) => res.send("Career API Is working on PORT: " + PORT));
+
 app.listen(PORT, () => {
   console.log("Server is running on " + PORT);
 });
