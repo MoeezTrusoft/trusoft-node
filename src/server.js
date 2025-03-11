@@ -5,7 +5,9 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import multer from "multer";
 import { uploadMulterFiles } from "./middleware/multer.middleware.js";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 dotenv.config();
 
 const app = express();
@@ -181,6 +183,82 @@ app.post("/resume", uploadMulterFiles, async (req, res) => {
     return res.status(500).json({ error: "Upload failed: " + error.message });
   }
 });
+
+app.post("/formsubmission", async (req, res) => {
+  try {
+    const {
+      first_name,
+      last_name,
+      email,
+      phone,
+      service,
+      other,
+      message,
+      check,
+    } = req.body;
+
+    if (!first_name || !last_name || !email || !phone || !service || !message) {
+      return res
+        .status(400)
+        .json({ error: "All required fields must be filled" });
+    }
+
+    const formSubmission = await prisma.formSubmission.create({
+      data: {
+        first_name,
+        last_name,
+        email,
+        phone,
+        service,
+        other: other || "",
+        message,
+        check: check === "true",
+      },
+    });
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
+      auth: {
+        user: process.env.BOOK_CRAFT_USER,
+        pass: process.env.BOOK_CRAFT_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.BOOK_CRAFT_FROM,
+      to: process.env.BOOK_CRAFT_FROM,
+      subject: "Form Submission Confirmation",
+      text: `Form Submission Details:
+    
+      - First Name: ${first_name}
+      - Last Name: ${last_name}
+      - Email: ${email}
+      - Phone: ${phone}
+      - Service: ${service}
+      - Other: ${other || "N/A"}
+      - Message: ${message}
+      - Check: ${check === "true" ? "Yes" : "No"}
+    
+      Best regards,
+      Book Craft Publishers
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(201).json({
+      message: "Form submitted successfully and confirmation email sent!",
+      data: formSubmission,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Submission failed: " + error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("Server is running on " + PORT);
 });
