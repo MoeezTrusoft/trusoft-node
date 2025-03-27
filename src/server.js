@@ -203,23 +203,23 @@ app.post("/formsubmission", async (req, res) => {
         .json({ error: "All required fields must be filled" });
     }
 
-    const formSubmission = await prisma.formSubmission.create({
-      data: {
-        first_name,
-        last_name,
-        email,
-        phone,
-        service,
-        other: other || "",
-        message,
-        check: check === "true",
-      },
-    });
+    // const formSubmission = await prisma.formSubmission.create({
+    //   data: {
+    //     first_name,
+    //     last_name,
+    //     email,
+    //     phone,
+    //     service,
+    //     other: other || "",
+    //     message,
+    //     check: check === "true",
+    //   },
+    // });
 
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: process.env.SMTP_HOST_BOOK,
       port: process.env.SMTP_PORT,
-      secure: false,
+      secure: true,
       auth: {
         user: process.env.BOOK_CRAFT_USER,
         pass: process.env.BOOK_CRAFT_PASS,
@@ -253,12 +253,12 @@ app.post("/formsubmission", async (req, res) => {
       data: formSubmission,
     });
   } catch (error) {
+    console.log({ error });
     return res
       .status(500)
       .json({ error: "Submission failed: " + error.message });
   }
 });
-
 
 app.get("/", (req, res) => res.send("Career API Is working on PORT: " + PORT));
 
