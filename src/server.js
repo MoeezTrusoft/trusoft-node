@@ -250,7 +250,7 @@ app.post("/formsubmission", async (req, res) => {
 
     return res.status(201).json({
       message: "Form submitted successfully and confirmation email sent!",
-      data: formSubmission,
+      data: mailOptions,
     });
   } catch (error) {
     return res
