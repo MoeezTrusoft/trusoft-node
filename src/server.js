@@ -224,6 +224,8 @@ app.post("/formsubmission", async (req, res) => {
         user: process.env.BOOK_CRAFT_USER,
         pass: process.env.BOOK_CRAFT_PASS,
       },
+      debug: true,
+      connectionTimeout: 60000,
     });
 
     const mailOptions = {
@@ -258,7 +260,6 @@ app.post("/formsubmission", async (req, res) => {
       .json({ error: "Submission failed: " + error.message });
   }
 });
-
 
 app.get("/", (req, res) => res.send("Career API Is working on PORT: " + PORT));
 
