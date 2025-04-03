@@ -203,18 +203,18 @@ app.post("/formsubmission", async (req, res) => {
         .json({ error: "All required fields must be filled" });
     }
 
-    const formSubmission = await prisma.formSubmission.create({
-      data: {
-        first_name,
-        last_name,
-        email,
-        phone,
-        service,
-        other: other || "",
-        message,
-        check: check === "true",
-      },
-    });
+    // const formSubmission = await prisma.formSubmission.create({
+    //   data: {
+    //     first_name,
+    //     last_name,
+    //     email,
+    //     phone,
+    //     service,
+    //     other: other || "",
+    //     message,
+    //     check: check === "true",
+    //   },
+    // });
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
