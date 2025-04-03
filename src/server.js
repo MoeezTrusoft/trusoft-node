@@ -217,9 +217,9 @@ app.post("/formsubmission", async (req, res) => {
     });
 
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: process.env.SMTP_HOST_BOOK,
       port: process.env.SMTP_PORT,
-      secure: false,
+      secure: true,
       auth: {
         user: process.env.BOOK_CRAFT_USER,
         pass: process.env.BOOK_CRAFT_PASS,
@@ -255,6 +255,7 @@ app.post("/formsubmission", async (req, res) => {
       data: formSubmission,
     });
   } catch (error) {
+    console.log({ error });
     return res
       .status(500)
       .json({ error: "Submission failed: " + error.message });
