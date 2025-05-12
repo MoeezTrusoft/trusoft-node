@@ -184,6 +184,147 @@ app.post("/resume", uploadMulterFiles, async (req, res) => {
   }
 });
 
+app.post("/publishing-form", async (req, res) => {
+  try {
+    const {
+      full_name,
+      email,
+      phone,
+      genre,
+      manuscript,
+      message,
+    } = req.body;
+    if (!first_name || !last_name || !email || !phone || !service || !message) {
+      return res
+        .status(400)
+        .json({ error: "All required fields must be filled" });
+    }
+    // const formSubmission = await prisma.formSubmission.create({
+    //   data: {
+    //     first_name,
+    //     last_name,
+    //     email,
+    //     phone,
+    //     service,
+    //     other: other || "",
+    //     message,
+    //     check: check === "true",
+    //   },
+    // });
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
+      auth: {
+        user: process.env.BOOK_CRAFT_USER,
+        pass: process.env.BOOK_CRAFT_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.BOOK_CRAFT_FROM,
+      to: process.env.BOOK_CRAFT_FROM,
+      subject: "Form Submission Confirmation",
+      text: `Form Submission Details:
+    
+      - Full Name: ${full_name}
+      - Email: ${email}
+      - Phone: ${phone}
+      - Genre: ${genre}
+      - Manuscript: ${manuscript}
+      - Message: ${message}
+    
+      Best regards,
+      Book Craft Publishers
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(201).json({
+      message: "Form submitted successfully and confirmation email sent!",
+      data: mailOptions,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Submission failed: " + error.message });
+  }
+});
+
+
+
+app.post("/marketing-form", async (req, res) => {
+  try {
+    const {
+      full_name,
+      email,
+      phone,
+      service,
+      message,
+    } = req.body;
+
+    if (!first_name || !last_name || !email || !phone || !service || !message) {
+      return res
+        .status(400)
+        .json({ error: "All required fields must be filled" });
+    }
+
+    // const formSubmission = await prisma.formSubmission.create({
+    //   data: {
+    //     first_name,
+    //     last_name,
+    //     email,
+    //     phone,
+    //     service,
+    //     other: other || "",
+    //     message,
+    //     check: check === "true",
+    //   },
+    // });
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
+      auth: {
+        user: process.env.BOOK_CRAFT_USER,
+        pass: process.env.BOOK_CRAFT_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.BOOK_CRAFT_FROM,
+      to: process.env.BOOK_CRAFT_FROM,
+      subject: "Form Submission Confirmation",
+      text: `Form Submission Details:
+    
+      - Full Name: ${full_name}
+      - Email: ${email}
+      - Phone: ${phone}
+      - Service: ${service}
+      - Message: ${message}
+    
+      Best regards,
+      Book Craft Publishers
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(201).json({
+      message: "Form submitted successfully and confirmation email sent!",
+      data: mailOptions,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Submission failed: " + error.message });
+  }
+});
+
+
+
 app.post("/formsubmission", async (req, res) => {
   try {
     const {
