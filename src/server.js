@@ -267,84 +267,6 @@ Book Craft Publishers Team`,
 
 
 
-app.post("/marketing-form", async (req, res) => {
-  try {
-    const {
-      full_name,
-      email,
-      phone,
-      service,
-      message,
-    } = req.body;
-
-    if (!full_name || !email || !phone || !service || !message) {
-      return res
-        .status(400)
-        .json({ error: "All required fields must be filled" });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: false,
-      auth: {
-        user: process.env.BOOK_CRAFT_USER,
-        pass: process.env.BOOK_CRAFT_PASS,
-      },
-    });
-
-    // Email to your company
-    const companyMailOptions = {
-      from: process.env.BOOK_CRAFT_FROM,
-      to: process.env.BOOK_CRAFT_FROM,
-      subject: "New Marketing Form Submission",
-      text: `New Form Submission:
-
-      - Full Name: ${full_name}
-      - Email: ${email}
-      - Phone: ${phone}
-      - Service: ${service}
-      - Message: ${message}
-      `,
-    };
-
-    // Confirmation email to user
-        const userMailOptions = {
-          from: process.env.BOOK_CRAFT_FROM,
-          to: email,
-          subject: "Thank you for contacting Book Craft Publishers!",
-          text: `Dear ${full_name},
-
-    Thank you for reaching out to Book Craft Publishers.
-
-    We have received your message and will get back to you shortly.
-
-    Your Submitted Details:
-    - Full Name: ${full_name}
-    - Email: ${email}
-    - Phone: ${phone}
-    - Service: ${service}
-    - Message: ${message}
-
-    Best regards,  
-    Book Craft Publishers Team`,
-        };
-
-    // Send both emails
-    await transporter.sendMail(companyMailOptions);
-    // await transporter.sendMail(userMailOptions);
-
-    return res.status(201).json({
-      message: "Form submitted successfully and emails sent!",
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Submission failed: " + error.message });
-  }
-});
-
-
 
 
 app.post("/formsubmission", async (req, res) => {
@@ -427,4 +349,68 @@ app.get("/", (req, res) => res.send("Career API Is working on PORT: " + PORT));
 
 app.listen(PORT, () => {
   console.log("Server is running on " + PORT);
+});
+
+app.post("/generic-form", async (req, res) => {
+  try {
+    const formData = req.body;
+
+    if (!formData || Object.keys(formData).length === 0) {
+      return res.status(400).json({ error: "Form data is empty" });
+    }
+
+    // Format all fields into a readable string
+    const formText = Object.entries(formData)
+      .map(([key, value]) => `- ${key.replace(/_/g, " ")}: ${value}`)
+      .join("\n");
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
+      auth: {
+        user: process.env.BOOK_CRAFT_USER,
+        pass: process.env.BOOK_CRAFT_PASS,
+      },
+    });
+
+    // Email to your company
+    const companyMailOptions = {
+      from: process.env.BOOK_CRAFT_FROM,
+      to: process.env.BOOK_CRAFT_FROM,
+      subject: "New Form Submission",
+      text: `New Form Submission:\n\n${formText}`,
+    };
+
+    await transporter.sendMail(companyMailOptions);
+
+    // Optional: Send confirmation to user if email field exists
+    if (formData.email) {
+      const userMailOptions = {
+        from: process.env.BOOK_CRAFT_FROM,
+        to: formData.email,
+        subject: "Thank you for your submission!",
+        text: `Dear ${formData.full_name || "Valued User"},
+
+Thank you for contacting us. We have received your message:
+
+${formText}
+
+We’ll get back to you soon.
+
+Best regards,  
+Book Craft Publishers Team`,
+      };
+
+      await transporter.sendMail(userMailOptions);
+    }
+
+    return res.status(201).json({
+      message: "Form submitted successfully and emails sent!",
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Submission failed: " + error.message });
+  }
 });
