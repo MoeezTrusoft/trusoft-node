@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const allowedDomains = process.env.ALLOWED_DOMAINS?.split(",").map((domain) =>
   domain.trim()
