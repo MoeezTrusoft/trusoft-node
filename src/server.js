@@ -266,9 +266,6 @@ Book Craft Publishers Team`,
 
 
 
-
-
-
 app.post("/formsubmission", async (req, res) => {
   try {
     const {
@@ -402,7 +399,7 @@ Best regards,
 Book Craft Publishers Team`,
       };
 
-      await transporter.sendMail(userMailOptions);
+      // await transporter.sendMail(userMailOptions);
     }
 
     return res.status(201).json({
