@@ -7,6 +7,7 @@ import multer from "multer";
 import { uploadMulterFiles } from "./middleware/multer.middleware.js";
 import { PrismaClient } from "@prisma/client";
 
+
 const prisma = new PrismaClient();
 dotenv.config();
 
@@ -411,3 +412,47 @@ Book Craft Publishers Team`,
       .json({ error: "Submission failed: " + error.message });
   }
 });
+
+
+
+
+const FILE_PATH = "./sample.docx"; // Example file path
+const ACCESS_TOKEN = "my-secret-token"; // For demo purposes
+
+
+// 1. File Metadata=
+app.get("/wopi/files/:id", (req, res) => {
+  if (req.query.access_token !== ACCESS_TOKEN) {
+    return res.status(401).send("Invalid token");
+  }
+  res.json({
+    BaseFileName: "sample.docx",
+    Size: fs.statSync(FILE_PATH).size,
+    OwnerId: "user-123",
+    Version: "1",
+    UserId: "user-123",
+    UserFriendlyName: "Test User",
+    UserCanWrite: true,
+    SupportsUpdate: true
+  });
+});
+
+// 2. File Content
+app.get("/wopi/files/:id/contents", (req, res) => {
+  if (req.query.access_token !== ACCESS_TOKEN) {
+    return res.status(401).send("Invalid token");
+  }
+  fs.createReadStream(FILE_PATH).pipe(res);
+});
+
+// 3. Save File
+app.post("/wopi/files/:id/contents", (req, res) => {
+  if (req.query.access_token !== ACCESS_TOKEN) {
+    return res.status(401).send("Invalid token");
+  }
+  const fileStream = fs.createWriteStream(FILE_PATH);
+  req.pipe(fileStream);
+  req.on("end", () => res.status(200).send("Saved"));
+});
+
+
