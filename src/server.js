@@ -7,6 +7,7 @@ import multer from "multer";
 import { uploadMulterFiles } from "./middleware/multer.middleware.js";
 import { PrismaClient } from "@prisma/client";
 
+import fs from "fs"
 
 const prisma = new PrismaClient();
 dotenv.config();
@@ -419,8 +420,11 @@ Book Craft Publishers Team`,
 const FILE_PATH = "./sample.docx"; // Example file path
 const ACCESS_TOKEN = "my-secret-token"; // For demo purposes
 
+const FILES = {
+  "test1": "/var/www/wopi-files/test.odt"
+};
 
-// 1. File Metadata=
+// 1. File Metadata
 app.get("/wopi/files/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
