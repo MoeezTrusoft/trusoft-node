@@ -8,6 +8,7 @@ import { uploadMulterFiles } from "./middleware/multer.middleware.js";
 import { PrismaClient } from "@prisma/client";
 
 import fs from "fs"
+import path from "path"
 
 const prisma = new PrismaClient();
 dotenv.config();
