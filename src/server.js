@@ -525,7 +525,9 @@ app.post("/save-doc/:id", async (req, res) => {
 
     // Convert DOCX → HTML
     const result = await mammoth.convertToHtml({ buffer: docBuffer });
+    
     const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
+    console.log(result, htmlPath, "result");
     fs.writeFileSync(htmlPath, result.value, "utf-8");
 
     res.json({
