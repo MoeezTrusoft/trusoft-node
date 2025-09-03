@@ -428,15 +428,12 @@ Book Craft Publishers Team`,
 
 const FILES = {};
 
-// Create new empty file in memory (not saved yet)
 app.post("/new-doc", (req, res) => {
   try {
     const newId = "file-" + Date.now();
-    // keep in memory with null path for now
-    FILES[newId] = null;
+    FILES[newId] = null; // not linked yet
     res.json({ fileId: newId });
   } catch (err) {
-    console.error("Error creating new doc:", err);
     res.status(500).json({ error: "Could not create new document" });
   }
 });
@@ -488,7 +485,9 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
-// saved file
+
+
+// Save doc to disk
 app.post("/save-doc/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
@@ -498,37 +497,37 @@ app.post("/save-doc/:id", (req, res) => {
   let filePath = FILES[fileId];
 
   if (!filePath) {
-    // First save → create a new docx file
+    // First save → create new file in assets/blogs
     filePath = path.join(BLOGS_DIR, `${fileId}.docx`);
     FILES[fileId] = filePath;
 
-    // copy template for valid blank doc
+    // use blank template
     const templatePath = path.join(__dirname, "templates", "blank.docx");
     fs.copyFileSync(templatePath, filePath);
   }
 
+  // Collabora would stream file content here
   const fileStream = fs.createWriteStream(filePath);
   req.pipe(fileStream);
 
   req.on("end", () => res.json({ success: true, message: "File saved!" }));
 });
 
-
-//show files
+// List old saved files
 app.get("/list-docs", (req, res) => {
   try {
     const files = fs.readdirSync(BLOGS_DIR)
       .filter(f => f.endsWith(".docx"))
-      .map(f => {
-        const id = path.basename(f, ".docx"); // file-169xxx
-        return { id, name: f };
-      });
-
+      .map(f => ({
+        id: path.basename(f, ".docx"),
+        name: f
+      }));
     res.json(files);
   } catch (err) {
     res.status(500).json({ error: "Failed to list docs: " + err.message });
   }
 });
+
 
 
 app.post("/upload-doc", uploadDoc.single("file"), (req, res) => {
