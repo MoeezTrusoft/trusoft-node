@@ -443,7 +443,7 @@ app.post("/new-doc", (req, res) => {
     const safeName = name.replace(/[^a-z0-9_\-]/gi, "_");
     const newId = safeName + "-" + Date.now();
     const newPathDocs = path.join(BLOGS_DIR, `${newId}.docx`);
-    const newPathHtml = path.join(BLOGS_DIR, `${newId}.html`);
+    const newPathHtml = path.join(BLOGS_DIR_HTML, `${newId}.html`);
 
 
     const templatePath = path.join(__dirname, "templates", "blank.docx");
