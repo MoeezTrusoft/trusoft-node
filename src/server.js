@@ -13,6 +13,8 @@ import path from "path"
 const __dirname = path.resolve(); // root dir of backend
 const BLOGS_DIR = path.join(__dirname, "assets", "blogs", "docs");
 const BLOGS_DIR_HTML = path.join(__dirname, "assets", "blogs", "html");
+app.use("/assets", express.static(path.join(__dirname, "assets")));
+
 
 const ACCESS_TOKEN = "my-secret-token";
 
@@ -508,8 +510,7 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
-
-app.post("/save-doc/:id", (req, res) => {
+app.post("/save-doc/:id", async (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
@@ -518,36 +519,24 @@ app.post("/save-doc/:id", (req, res) => {
   const docxPath = FILES[fileId];
   if (!docxPath) return res.status(404).send("File not found");
 
-  const buffers = [];
-  req.on("data", (chunk) => buffers.push(chunk));
-  req.on("end", async () => {
-    try {
-      const buffer = Buffer.concat(buffers);
+  try {
+    // Always read the docx from disk
+    const docBuffer = fs.readFileSync(docxPath);
 
-      // 1. If buffer is empty, skip overwriting file
-      if (buffer.length > 0) {
-        fs.writeFileSync(docxPath, buffer);
-      }
+    // Convert DOCX → HTML
+    const result = await mammoth.convertToHtml({ buffer: docBuffer });
+    const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
+    fs.writeFileSync(htmlPath, result.value, "utf-8");
 
-      // 2. Always read the saved docx from disk
-      const docBuffer = fs.readFileSync(docxPath);
-
-      // 3. Convert DOCX → HTML
-      const result = await mammoth.convertToHtml({ buffer: docBuffer });
-
-      const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
-      fs.writeFileSync(htmlPath, result.value, "utf-8");
-
-      res.json({
-        success: true,
-        message: "File saved as DOCX and HTML",
-        paths: { docx: docxPath, html: htmlPath }
-      });
-    } catch (err) {
-      console.error("Save error:", err);
-      res.status(500).json({ error: "Failed to save document" });
-    }
-  });
+    res.json({
+      success: true,
+      message: "HTML regenerated from latest DOCX",
+      paths: { docx: docxPath, html: htmlPath }
+    });
+  } catch (err) {
+    console.error("Save error:", err);
+    res.status(500).json({ error: "Failed to save document" });
+  }
 });
 
 
