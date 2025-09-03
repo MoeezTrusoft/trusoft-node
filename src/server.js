@@ -508,6 +508,7 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
+
 app.post("/save-doc/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
@@ -523,17 +524,19 @@ app.post("/save-doc/:id", (req, res) => {
     try {
       const buffer = Buffer.concat(buffers);
 
-      // 1. Save DOCX
-      fs.writeFileSync(docxPath, buffer);
-
-      // 2. Convert DOCX → HTML
-      const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
-      try {
-        const result = await mammoth.convertToHtml({ buffer });
-        fs.writeFileSync(htmlPath, result.value, "utf-8");
-      } catch (err) {
-        console.error("DOCX → HTML conversion failed:", err);
+      // 1. If buffer is empty, skip overwriting file
+      if (buffer.length > 0) {
+        fs.writeFileSync(docxPath, buffer);
       }
+
+      // 2. Always read the saved docx from disk
+      const docBuffer = fs.readFileSync(docxPath);
+
+      // 3. Convert DOCX → HTML
+      const result = await mammoth.convertToHtml({ buffer: docBuffer });
+
+      const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
+      fs.writeFileSync(htmlPath, result.value, "utf-8");
 
       res.json({
         success: true,
