@@ -417,45 +417,63 @@ Book Craft Publishers Team`,
 
 
 
-
-const FILE_PATH = "./sample.docx"; // Example file path
-const ACCESS_TOKEN = "my-secret-token"; // For demo purposes
-
 const FILES = {
-  "test1": "/var/www/wopi-files/test.odt"
+  "123456": "./sample.docx",
+  "test1": "/var/www/wopi-files/test.odt",
 };
 
-// 1. File Metadata
+// Create new empty file
+app.post("/new-doc", (req, res) => {
+  const newId = "file-" + Date.now();
+  const newPath = `./wopi-files/${newId}.docx`;
+
+  // Create an empty Word doc or copy a template
+  fs.copyFileSync("./templates/blank.docx", newPath);
+
+  FILES[newId] = newPath;
+
+  res.json({ fileId: newId });
+});
+
+// WOPI file metadata
 app.get("/wopi/files/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
+
   res.json({
-    BaseFileName: "sample.docx",
-    Size: fs.statSync(FILE_PATH).size,
+    BaseFileName: path.basename(filePath),
+    Size: fs.statSync(filePath).size,
     OwnerId: "user-123",
     Version: "1",
     UserId: "user-123",
     UserFriendlyName: "Test User",
     UserCanWrite: true,
-    SupportsUpdate: true
+    SupportsUpdate: true,
   });
 });
 
-// 2. File Content
+// WOPI get file contents
 app.get("/wopi/files/:id/contents", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
-  fs.createReadStream(FILE_PATH).pipe(res);
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
+  fs.createReadStream(filePath).pipe(res);
 });
 
-// 3. Save File
+// WOPI save file contents
 app.post("/wopi/files/:id/contents", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
-  const fileStream = fs.createWriteStream(FILE_PATH);
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
+
+  const fileStream = fs.createWriteStream(filePath);
   req.pipe(fileStream);
   req.on("end", () => res.status(200).send("Saved"));
 });
