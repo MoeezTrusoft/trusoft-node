@@ -494,3 +494,37 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
+// saved file
+app.post("/save-doc/:id", (req, res) => {
+  if (req.query.access_token !== ACCESS_TOKEN) {
+    return res.status(401).send("Invalid token");
+  }
+
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
+
+  const fileStream = fs.createWriteStream(filePath);
+  req.pipe(fileStream);
+
+  req.on("end", () => res.json({ success: true, message: "File saved!" }));
+});
+
+
+//show files
+app.get("/list-docs", (req, res) => {
+  try {
+    const files = fs.readdirSync(BLOGS_DIR)
+      .filter(f => f.endsWith(".docx"))
+      .map(f => {
+        const id = path.basename(f, ".docx"); // file-169xxx
+        return { id, name: f };
+      });
+
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to list docs: " + err.message });
+  }
+});
+
+
+
