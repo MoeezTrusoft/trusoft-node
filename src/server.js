@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import multer from "multer";
 import { uploadMulterFiles } from "./middleware/multer.middleware.js";
 import { PrismaClient } from "@prisma/client";
+import mammoth from "mammoth";
 
 import fs from "fs"
 import path from "path"
@@ -442,20 +443,16 @@ app.post("/new-doc", (req, res) => {
     // Sanitize filename (remove spaces/special chars)
     const safeName = name.replace(/[^a-z0-9_\-]/gi, "_");
     const newId = safeName + "-" + Date.now();
-    const newPathDocs = path.join(BLOGS_DIR, `${newId}.docx`);
-    const newPathHtml = path.join(BLOGS_DIR_HTML, `${newId}.html`);
-
+    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
 
     const templatePath = path.join(__dirname, "templates", "blank.docx");
     if (!fs.existsSync(templatePath)) {
       return res.status(500).json({ error: "Template file not found" });
     }
 
-    fs.copyFileSync(templatePath, newPathDocs);
-    fs.copyFileSync(templatePath, newPathHtml);
+    fs.copyFileSync(templatePath, newPath);
 
-
-    FILES[newId] = newPathDocs;
+    FILES[newId] = newPath;
 
     res.json({ fileId: newId, fileName: `${safeName}.docx` });
   } catch (err) {
@@ -511,19 +508,43 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
-// saved file
 app.post("/save-doc/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
 
-  const filePath = FILES[req.params.id];
-  if (!filePath) return res.status(404).send("File not found");
+  const fileId = req.params.id;
+  const docxPath = FILES[fileId];
+  if (!docxPath) return res.status(404).send("File not found");
 
-  const fileStream = fs.createWriteStream(filePath);
-  req.pipe(fileStream);
+  const buffers = [];
+  req.on("data", (chunk) => buffers.push(chunk));
+  req.on("end", async () => {
+    try {
+      const buffer = Buffer.concat(buffers);
 
-  req.on("end", () => res.json({ success: true, message: "File saved!" }));
+      // 1. Save DOCX
+      fs.writeFileSync(docxPath, buffer);
+
+      // 2. Convert DOCX → HTML
+      const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
+      try {
+        const result = await mammoth.convertToHtml({ buffer });
+        fs.writeFileSync(htmlPath, result.value, "utf-8");
+      } catch (err) {
+        console.error("DOCX → HTML conversion failed:", err);
+      }
+
+      res.json({
+        success: true,
+        message: "File saved as DOCX and HTML",
+        paths: { docx: docxPath, html: htmlPath }
+      });
+    } catch (err) {
+      console.error("Save error:", err);
+      res.status(500).json({ error: "Failed to save document" });
+    }
+  });
 });
 
 
