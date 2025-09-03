@@ -13,7 +13,6 @@ import path from "path"
 const __dirname = path.resolve(); // root dir of backend
 const BLOGS_DIR = path.join(__dirname, "assets", "blogs", "docs");
 const BLOGS_DIR_HTML = path.join(__dirname, "assets", "blogs", "html");
-app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 
 const ACCESS_TOKEN = "my-secret-token";
@@ -29,6 +28,7 @@ const prisma = new PrismaClient();
 dotenv.config();
 
 const app = express();
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 const PORT = process.env.PORT || 5001;
 
 const allowedDomains = process.env.ALLOWED_DOMAINS?.split(",").map((domain) =>
