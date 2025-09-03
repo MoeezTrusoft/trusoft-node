@@ -432,10 +432,9 @@ app.post("/new-doc", (req, res) => {
     const newId = "file-" + Date.now();
     const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
 
-    // make sure template exists
     const templatePath = path.join(__dirname, "templates", "blank.docx");
     if (!fs.existsSync(templatePath)) {
-      return res.status(500).json({ error: "Template file not found" });
+      return res.status(500).json({ error: "Template file not found at " + templatePath });
     }
 
     fs.copyFileSync(templatePath, newPath);
@@ -448,6 +447,7 @@ app.post("/new-doc", (req, res) => {
     res.status(500).json({ error: "Could not create new document" });
   }
 });
+
 
 
 // WOPI file metadata
