@@ -9,6 +9,9 @@ import { PrismaClient } from "@prisma/client";
 
 import fs from "fs"
 import path from "path"
+import multer from "multer";
+const uploadDoc = multer({ dest: BLOGS_DIR });
+
 const __dirname = path.resolve(); // root dir of backend
 const BLOGS_DIR = path.join(__dirname, "assets", "blogs");
 const ACCESS_TOKEN = "my-secret-token";
@@ -426,27 +429,19 @@ Book Craft Publishers Team`,
 
 const FILES = {};
 
-// Create new empty file
+// Create new empty file in memory (not saved yet)
 app.post("/new-doc", (req, res) => {
   try {
     const newId = "file-" + Date.now();
-    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
-
-    const templatePath = path.join(__dirname, "templates", "blank.docx");
-    if (!fs.existsSync(templatePath)) {
-      return res.status(500).json({ error: "Template file not found at " + templatePath });
-    }
-
-    fs.copyFileSync(templatePath, newPath);
-
-    FILES[newId] = newPath;
-
+    // keep in memory with null path for now
+    FILES[newId] = null;
     res.json({ fileId: newId });
   } catch (err) {
     console.error("Error creating new doc:", err);
     res.status(500).json({ error: "Could not create new document" });
   }
 });
+
 
 
 
@@ -500,8 +495,18 @@ app.post("/save-doc/:id", (req, res) => {
     return res.status(401).send("Invalid token");
   }
 
-  const filePath = FILES[req.params.id];
-  if (!filePath) return res.status(404).send("File not found");
+  const fileId = req.params.id;
+  let filePath = FILES[fileId];
+
+  if (!filePath) {
+    // First save → create a new docx file
+    filePath = path.join(BLOGS_DIR, `${fileId}.docx`);
+    FILES[fileId] = filePath;
+
+    // copy template for valid blank doc
+    const templatePath = path.join(__dirname, "templates", "blank.docx");
+    fs.copyFileSync(templatePath, filePath);
+  }
 
   const fileStream = fs.createWriteStream(filePath);
   req.pipe(fileStream);
@@ -526,5 +531,15 @@ app.get("/list-docs", (req, res) => {
   }
 });
 
+
+app.post("/upload-doc", uploadDoc.single("file"), (req, res) => {
+  const fileId = path.basename(req.file.filename, path.extname(req.file.filename));
+  const newName = `${fileId}.docx`;
+  const newPath = path.join(BLOGS_DIR, newName);
+  fs.renameSync(req.file.path, newPath);
+
+  FILES[fileId] = newPath;
+  res.json({ fileId, fileName: newName });
+});
 
 
