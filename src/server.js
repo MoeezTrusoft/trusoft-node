@@ -9,10 +9,8 @@ import { PrismaClient } from "@prisma/client";
 
 import fs from "fs"
 import path from "path"
-
 const __dirname = path.resolve(); // root dir of backend
 const BLOGS_DIR = path.join(__dirname, "assets", "blogs");
-const uploadDoc = multer({ dest: BLOGS_DIR });
 const ACCESS_TOKEN = "my-secret-token";
 
 // make sure folder exists
@@ -428,16 +426,27 @@ Book Craft Publishers Team`,
 
 const FILES = {};
 
+// Create new empty file
 app.post("/new-doc", (req, res) => {
   try {
     const newId = "file-" + Date.now();
-    FILES[newId] = null; // not linked yet
+    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
+
+    const templatePath = path.join(__dirname, "templates", "blank.docx");
+    if (!fs.existsSync(templatePath)) {
+      return res.status(500).json({ error: "Template file not found at " + templatePath });
+    }
+
+    fs.copyFileSync(templatePath, newPath);
+
+    FILES[newId] = newPath;
+
     res.json({ fileId: newId });
   } catch (err) {
+    console.error("Error creating new doc:", err);
     res.status(500).json({ error: "Could not create new document" });
   }
 });
-
 
 
 
@@ -485,59 +494,37 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 
-
-
-// Save doc to disk
+// saved file
 app.post("/save-doc/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
 
-  const fileId = req.params.id;
-  let filePath = FILES[fileId];
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
 
-  if (!filePath) {
-    // First save → create new file in assets/blogs
-    filePath = path.join(BLOGS_DIR, `${fileId}.docx`);
-    FILES[fileId] = filePath;
-
-    // use blank template
-    const templatePath = path.join(__dirname, "templates", "blank.docx");
-    fs.copyFileSync(templatePath, filePath);
-  }
-
-  // Collabora would stream file content here
   const fileStream = fs.createWriteStream(filePath);
   req.pipe(fileStream);
 
   req.on("end", () => res.json({ success: true, message: "File saved!" }));
 });
 
-// List old saved files
+
+//show files
 app.get("/list-docs", (req, res) => {
   try {
     const files = fs.readdirSync(BLOGS_DIR)
       .filter(f => f.endsWith(".docx"))
-      .map(f => ({
-        id: path.basename(f, ".docx"),
-        name: f
-      }));
+      .map(f => {
+        const id = path.basename(f, ".docx"); // file-169xxx
+        return { id, name: f };
+      });
+
     res.json(files);
   } catch (err) {
     res.status(500).json({ error: "Failed to list docs: " + err.message });
   }
 });
 
-
-
-app.post("/upload-doc", uploadDoc.single("file"), (req, res) => {
-  const fileId = path.basename(req.file.filename, path.extname(req.file.filename));
-  const newName = `${fileId}.docx`;
-  const newPath = path.join(BLOGS_DIR, newName);
-  fs.renameSync(req.file.path, newPath);
-
-  FILES[fileId] = newPath;
-  res.json({ fileId, fileName: newName });
-});
 
 
