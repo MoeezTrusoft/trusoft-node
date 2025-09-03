@@ -520,39 +520,29 @@ app.post("/save-doc/:id", async (req, res) => {
   if (!docxPath) return res.status(404).send("File not found");
 
   try {
-    // Ensure output folder exists
-    if (!fs.existsSync(BLOGS_DIR_HTML)) {
-      fs.mkdirSync(BLOGS_DIR_HTML, { recursive: true });
-    }
-
     const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
 
     // Run LibreOffice to convert DOCX → HTML
     exec(
       `libreoffice --headless --convert-to html --outdir "${BLOGS_DIR_HTML}" "${docxPath}"`,
-      (err, stdout, stderr) => {
-        if (err) {
-          console.error("LibreOffice conversion failed:", stderr || err);
-          return res.status(500).json({ error: "DOCX → HTML conversion failed" });
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error("LibreOffice error:", stderr);
+          return res.status(500).json({ error: "Conversion failed" });
         }
 
-        console.log("LibreOffice output:", stdout);
-
-        // LibreOffice names the output same as input but with .html extension
-        // Rename it to match our `${fileId}.html`
-        const generatedPath = path.join(
+        // Rename output (LibreOffice names it .html same as docx)
+        const generatedHtml = path.join(
           BLOGS_DIR_HTML,
-          path.basename(docxPath, ".docx") + ".html"
+          path.basename(docxPath, path.extname(docxPath)) + ".html"
         );
 
-        if (fs.existsSync(generatedPath)) {
-          fs.renameSync(generatedPath, htmlPath);
-        }
+        fs.renameSync(generatedHtml, htmlPath);
 
-        return res.json({
+        res.json({
           success: true,
-          message: "✅ DOCX saved and converted to HTML",
-          paths: { docx: docxPath, html: htmlPath },
+          message: "HTML regenerated from latest DOCX",
+          paths: { docx: docxPath, html: htmlPath }
         });
       }
     );
