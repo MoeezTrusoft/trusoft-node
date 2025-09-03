@@ -10,12 +10,17 @@ import { PrismaClient } from "@prisma/client";
 import fs from "fs"
 import path from "path"
 const __dirname = path.resolve(); // root dir of backend
-const BLOGS_DIR = path.join(__dirname, "assets", "blogs");
+const BLOGS_DIR = path.join(__dirname, "assets", "blogs", "docs");
+const BLOGS_DIR_HTML = path.join(__dirname, "assets", "blogs", "html");
+
 const ACCESS_TOKEN = "my-secret-token";
 
 // make sure folder exists
 if (!fs.existsSync(BLOGS_DIR)) {
   fs.mkdirSync(BLOGS_DIR, { recursive: true });
+}
+if (!fs.existsSync(BLOGS_DIR_HTML)) {
+  fs.mkdirSync(BLOGS_DIR_HTML, { recursive: true });
 }
 const prisma = new PrismaClient();
 dotenv.config();
@@ -437,16 +442,20 @@ app.post("/new-doc", (req, res) => {
     // Sanitize filename (remove spaces/special chars)
     const safeName = name.replace(/[^a-z0-9_\-]/gi, "_");
     const newId = safeName + "-" + Date.now();
-    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
+    const newPathDocs = path.join(BLOGS_DIR, `${newId}.docx`);
+    const newPathHtml = path.join(BLOGS_DIR, `${newId}.html`);
+
 
     const templatePath = path.join(__dirname, "templates", "blank.docx");
     if (!fs.existsSync(templatePath)) {
       return res.status(500).json({ error: "Template file not found" });
     }
 
-    fs.copyFileSync(templatePath, newPath);
+    fs.copyFileSync(templatePath, newPathDocs);
+    fs.copyFileSync(templatePath, newPathHtml);
 
-    FILES[newId] = newPath;
+
+    FILES[newId] = newPathDocs;
 
     res.json({ fileId: newId, fileName: `${safeName}.docx` });
   } catch (err) {
