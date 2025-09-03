@@ -9,7 +9,6 @@ import { PrismaClient } from "@prisma/client";
 
 import fs from "fs"
 import path from "path"
-import multer from "multer";
 const uploadDoc = multer({ dest: BLOGS_DIR });
 
 const __dirname = path.resolve(); // root dir of backend
