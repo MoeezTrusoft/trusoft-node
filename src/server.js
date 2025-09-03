@@ -426,27 +426,35 @@ Book Craft Publishers Team`,
 
 const FILES = {};
 
-// Create new empty file
+// Create new empty file with custom name
 app.post("/new-doc", (req, res) => {
   try {
-    const newId = "file-" + Date.now();
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: "File name is required" });
+    }
+
+    // Sanitize filename (remove spaces/special chars)
+    const safeName = name.replace(/[^a-z0-9_\-]/gi, "_");
+    const newId = safeName + "-" + Date.now();
     const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
 
     const templatePath = path.join(__dirname, "templates", "blank.docx");
     if (!fs.existsSync(templatePath)) {
-      return res.status(500).json({ error: "Template file not found at " + templatePath });
+      return res.status(500).json({ error: "Template file not found" });
     }
 
     fs.copyFileSync(templatePath, newPath);
 
     FILES[newId] = newPath;
 
-    res.json({ fileId: newId });
+    res.json({ fileId: newId, fileName: `${safeName}.docx` });
   } catch (err) {
     console.error("Error creating new doc:", err);
     res.status(500).json({ error: "Could not create new document" });
   }
 });
+
 
 
 
