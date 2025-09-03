@@ -9,7 +9,13 @@ import { PrismaClient } from "@prisma/client";
 
 import fs from "fs"
 import path from "path"
+const __dirname = path.resolve(); // root dir of backend
+const BLOGS_DIR = path.join(__dirname, "assets", "blogs");
 
+// make sure folder exists
+if (!fs.existsSync(BLOGS_DIR)) {
+  fs.mkdirSync(BLOGS_DIR, { recursive: true });
+}
 const prisma = new PrismaClient();
 dotenv.config();
 
@@ -416,24 +422,33 @@ Book Craft Publishers Team`,
 });
 
 
+const ACCESS_TOKEN = "my-secret-token";
 
-const FILES = {
-  "123456": "./sample.docx",
-  "test1": "/var/www/wopi-files/test.odt",
-};
+const FILES = {};
 
 // Create new empty file
 app.post("/new-doc", (req, res) => {
-  const newId = "file-" + Date.now();
-  const newPath = `./wopi-files/${newId}.docx`;
+  try {
+    const newId = "file-" + Date.now();
+    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
 
-  // Create an empty Word doc or copy a template
-  fs.copyFileSync("./templates/blank.docx", newPath);
+    // make sure template exists
+    const templatePath = path.join(__dirname, "templates", "blank.docx");
+    if (!fs.existsSync(templatePath)) {
+      return res.status(500).json({ error: "Template file not found" });
+    }
 
-  FILES[newId] = newPath;
+    fs.copyFileSync(templatePath, newPath);
 
-  res.json({ fileId: newId });
+    FILES[newId] = newPath;
+
+    res.json({ fileId: newId });
+  } catch (err) {
+    console.error("Error creating new doc:", err);
+    res.status(500).json({ error: "Could not create new document" });
+  }
 });
+
 
 // WOPI file metadata
 app.get("/wopi/files/:id", (req, res) => {
