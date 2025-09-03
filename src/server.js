@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import multer from "multer";
 import { uploadMulterFiles } from "./middleware/multer.middleware.js";
 import { PrismaClient } from "@prisma/client";
-import mammoth from "mammoth";
+import { exec } from "child_process";
 
 import fs from "fs"
 import path from "path"
@@ -509,7 +509,7 @@ app.post("/wopi/files/:id/contents", (req, res) => {
   req.on("end", () => res.status(200).send("Saved"));
 });
 
-
+// Save DOCX and also convert to HTML using LibreOffice CLI
 app.post("/save-doc/:id", async (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
@@ -520,26 +520,48 @@ app.post("/save-doc/:id", async (req, res) => {
   if (!docxPath) return res.status(404).send("File not found");
 
   try {
-    // Always read the docx from disk
-    const docBuffer = fs.readFileSync(docxPath);
+    // Ensure output folder exists
+    if (!fs.existsSync(BLOGS_DIR_HTML)) {
+      fs.mkdirSync(BLOGS_DIR_HTML, { recursive: true });
+    }
 
-    // Convert DOCX → HTML
-    const result = await mammoth.convertToHtml({ buffer: docBuffer });
-    
     const htmlPath = path.join(BLOGS_DIR_HTML, `${fileId}.html`);
-    console.log(result, htmlPath, "result");
-    fs.writeFileSync(htmlPath, result.value, "utf-8");
 
-    res.json({
-      success: true,
-      message: "HTML regenerated from latest DOCX",
-      paths: { docx: docxPath, html: htmlPath }
-    });
+    // Run LibreOffice to convert DOCX → HTML
+    exec(
+      `libreoffice --headless --convert-to html --outdir "${BLOGS_DIR_HTML}" "${docxPath}"`,
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error("LibreOffice conversion failed:", stderr || err);
+          return res.status(500).json({ error: "DOCX → HTML conversion failed" });
+        }
+
+        console.log("LibreOffice output:", stdout);
+
+        // LibreOffice names the output same as input but with .html extension
+        // Rename it to match our `${fileId}.html`
+        const generatedPath = path.join(
+          BLOGS_DIR_HTML,
+          path.basename(docxPath, ".docx") + ".html"
+        );
+
+        if (fs.existsSync(generatedPath)) {
+          fs.renameSync(generatedPath, htmlPath);
+        }
+
+        return res.json({
+          success: true,
+          message: "✅ DOCX saved and converted to HTML",
+          paths: { docx: docxPath, html: htmlPath },
+        });
+      }
+    );
   } catch (err) {
     console.error("Save error:", err);
     res.status(500).json({ error: "Failed to save document" });
   }
 });
+
 
 
 //show files
