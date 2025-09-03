@@ -11,6 +11,7 @@ import fs from "fs"
 import path from "path"
 const __dirname = path.resolve(); // root dir of backend
 const BLOGS_DIR = path.join(__dirname, "assets", "blogs");
+const ACCESS_TOKEN = "my-secret-token";
 
 // make sure folder exists
 if (!fs.existsSync(BLOGS_DIR)) {
@@ -422,7 +423,6 @@ Book Craft Publishers Team`,
 });
 
 
-const ACCESS_TOKEN = "my-secret-token";
 
 const FILES = {};
 
