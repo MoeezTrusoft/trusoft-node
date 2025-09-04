@@ -16,6 +16,7 @@ const BLOGS_DIR_HTML = path.join(__dirname, "assets", "blogs", "html");
 
 
 const ACCESS_TOKEN = "my-secret-token";
+const FILE_VERSIONS = {}; // track versions
 
 // make sure folder exists
 if (!fs.existsSync(BLOGS_DIR)) {
@@ -471,6 +472,7 @@ app.get("/wopi/files/:id", (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
   }
+
   const filePath = FILES[req.params.id];
   if (!filePath) return res.status(404).send("File not found");
 
@@ -478,13 +480,14 @@ app.get("/wopi/files/:id", (req, res) => {
     BaseFileName: path.basename(filePath),
     Size: fs.statSync(filePath).size,
     OwnerId: "user-123",
-    Version: "1",
+    Version: (FILE_VERSIONS[req.params.id] || 1).toString(),
     UserId: "user-123",
     UserFriendlyName: "Test User",
     UserCanWrite: true,
     SupportsUpdate: true,
   });
 });
+
 
 // WOPI get file contents
 app.get("/wopi/files/:id/contents", (req, res) => {
@@ -568,6 +571,25 @@ app.get("/list-docs", (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Failed to list docs: " + err.message });
   }
+});
+
+
+// PUT handler (for images & autosaves)
+app.put("/wopi/files/:id/contents", (req, res) => {
+  if (req.query.access_token !== ACCESS_TOKEN) {
+    return res.status(401).send("Invalid token");
+  }
+
+  const filePath = FILES[req.params.id];
+  if (!filePath) return res.status(404).send("File not found");
+
+  const fileStream = fs.createWriteStream(filePath);
+  req.pipe(fileStream);
+
+  req.on("end", () => {
+    FILE_VERSIONS[req.params.id] = (FILE_VERSIONS[req.params.id] || 1) + 1;
+    res.status(200).send("Saved via PUT");
+  });
 });
 
 
