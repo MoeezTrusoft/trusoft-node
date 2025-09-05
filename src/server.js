@@ -438,21 +438,20 @@ const FILES = {};
 // Create new empty file with custom name
 app.post("/new-doc", (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: "File name is required" });
-    }
+    const { name, templateName } = req.body;
+    if (!name) return res.status(400).json({ error: "File name is required" });
+    if (!templateName) return res.status(400).json({ error: "Template is required" });
 
-    // Sanitize filename (remove spaces/special chars)
     const safeName = name.replace(/[^a-z0-9_\-]/gi, "_");
     const newId = safeName + "-" + Date.now();
-    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
 
-    const templatePath = path.join(__dirname, "templates", "blank.docx");
+    const templatePath = path.join(__dirname, "templates", templateName);
     if (!fs.existsSync(templatePath)) {
-      return res.status(500).json({ error: "Template file not found" });
+      return res.status(404).json({ error: "Template not found" });
     }
 
+    // Always store as .docx regardless of template input
+    const newPath = path.join(BLOGS_DIR, `${newId}.docx`);
     fs.copyFileSync(templatePath, newPath);
 
     FILES[newId] = newPath;
@@ -513,6 +512,7 @@ app.post("/wopi/files/:id/contents", (req, res) => {
 });
 
 // Save DOCX and also convert to HTML using LibreOffice CLI
+
 app.post("/save-doc/:id", async (req, res) => {
   if (req.query.access_token !== ACCESS_TOKEN) {
     return res.status(401).send("Invalid token");
@@ -592,5 +592,18 @@ app.put("/wopi/files/:id/contents", (req, res) => {
   });
 });
 
+//list templates
+app.get("/list-templates", (req, res) => {
+  try {
+    const templateDir = path.join(__dirname, "templates");
+    const files = fs.readdirSync(templateDir)
+      .filter(f => f.endsWith(".docx") || f.endsWith(".odt"))
+      .map(f => ({ name: f, path: `/templates/${f}` })); // expose only names
+
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to list templates: " + err.message });
+  }
+});
 
 
